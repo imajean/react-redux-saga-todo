@@ -6,7 +6,9 @@ import { createStore, applyMiddleware, compose } from 'redux';
 import { fromJS } from 'immutable';
 import { routerMiddleware } from 'react-router-redux';
 import createSagaMiddleware from 'redux-saga';
+import { persistStore, autoRehydrate } from 'redux-persist-immutable';
 import createReducer from './reducers';
+import sagas from './sagas';
 
 const sagaMiddleware = createSagaMiddleware();
 
@@ -21,6 +23,7 @@ export default function configureStore(initialState = {}, history) {
 
   const enhancers = [
     applyMiddleware(...middlewares),
+    autoRehydrate(),
   ];
 
   // If Redux DevTools Extension is installed use it, otherwise use Redux compose
@@ -40,6 +43,9 @@ export default function configureStore(initialState = {}, history) {
 
   // Extensions
   store.runSaga = sagaMiddleware.run;
+  sagas.forEach((saga) => {
+    store.runSaga(saga);
+  });
   store.asyncReducers = {}; // Async reducer registry
 
   // Make reducers hot reloadable, see http://mxs.is/googmo
@@ -54,6 +60,8 @@ export default function configureStore(initialState = {}, history) {
       });
     });
   }
+
+  persistStore(store, { blacklist: ['route'] });
 
   return store;
 }
